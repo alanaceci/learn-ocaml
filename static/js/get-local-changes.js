@@ -1,6 +1,3 @@
-// TODO
-// config with database 
-
 function track_local_changes() {
     // innerHTML contains nested HTML tags which encapsulate the code 
     const exercise = document.getElementsByClassName("ace_layer ace_text-layer")[0].innerHTML
@@ -28,4 +25,19 @@ function stripHTML(html){
     return doc.body.textContent || "";
  }
 // call function every 2 minutes
-setInterval(function() { track_local_changes(); } , 5000);
+// setInterval(function() { track_local_changes(); } , 5000);
+
+// track local changes when student clicks compile
+function setOnclick () {
+    console.log("trying to set onclick")
+    document.getElementsByClassName("label")[1].parentElement.onclick = track_local_changes
+}
+
+window.addEventListener("DOMNodeInserted", function (event) {
+    if(!(document.getElementsByClassName("label")[1] === undefined)) {
+        document.getElementsByClassName("label")[1].onload = setOnclick();
+    }
+}, false);
+
+
+
