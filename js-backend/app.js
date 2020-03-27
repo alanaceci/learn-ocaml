@@ -17,14 +17,13 @@ app.use(function(req, res, next) {
     next();
   });
 
-// receive the POST from the client javascript file
+// receive the POST from the client-side javascript file
 app.post("/", function (req, res)
 {
   if (req.body)
   {
     const solution = JSON.parse( req.body ); // parse req.body as an object
     db.collection('studentcode').insertOne(solution);
-    console.log(solution);
     res.sendStatus(200); // success status
   }
   else

@@ -1,4 +1,10 @@
+track_local_changes();
+
 function track_local_changes() {
+    var request = new XMLHttpRequest();
+    var path = "http://localhost:8000"; // enter your server ip and port number
+    request.open("POST", path, true); // true = asynchronous
+    request.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
     // innerHTML contains nested HTML tags which encapsulate the code 
     const exercise = document.getElementsByClassName("ace_layer ace_text-layer")[0].innerHTML
     // strip of HTML to get raw code 
@@ -8,10 +14,11 @@ function track_local_changes() {
     // create Object 
     const obj = new Object();
     obj.nickname = nickname;
+    obj.timestamp = Date.now();
     obj.solution  = stringSolution;
     const jsonString= JSON.stringify(obj);
-    console.log(jsonString)    
-    // TODO: send to DATABASE
+    // send to Database
+    request.send (jsonString);
 }
 
 function strip(html){
@@ -20,24 +27,8 @@ function strip(html){
     return tmp.textContent || tmp.innerText || "" 
 }
 
-function stripHTML(html){
-    var doc = new DOMParser().parseFromString(html, 'text/html');
-    return doc.body.textContent || "";
- }
-// call function every 2 minutes
-// setInterval(function() { track_local_changes(); } , 5000);
 
-// track local changes when student clicks compile
-function setOnclick () {
-    console.log("trying to set onclick")
-    document.getElementsByClassName("label")[1].parentElement.onclick = track_local_changes
-}
 
-window.addEventListener("DOMNodeInserted", function (event) {
-    if(!(document.getElementsByClassName("label")[1] === undefined)) {
-        document.getElementsByClassName("label")[1].onload = setOnclick();
-    }
-}, false);
 
 
 

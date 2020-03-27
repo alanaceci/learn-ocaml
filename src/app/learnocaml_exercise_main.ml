@@ -35,6 +35,7 @@ let get_grade =
     get_worker () >>= fun worker_js_file ->
     Grading_jsoo.get_grade ~worker_js_file ?callback ?timeout exercise
 
+
 let display_report exo report =
   let score, _failed = Report.result report in
   let report_button = find_component "learnocaml-exo-button-report" in
@@ -167,6 +168,12 @@ let display_skill_meta _skill exs content_id =
          exercise_link ex_id [Tyxml_js.Html5.pcdata ex_id]) exs);
   Lwt.return ()
 
+let send_to_server ace editor set_class =
+  let myscript = Dom_html.createScript Dom_html.document in
+    myscript##._type := Js.string "text/javascript";
+    myscript##.src := Js.string "/js/get-local-changes.js";
+    Dom.appendChild Dom_html.document##.head myscript 
+  
 let display_link onclick content_id value =
   let open Tyxml_js.Html5 in
   let cid = Format.asprintf "%s-%s" content_id value in
@@ -454,6 +461,7 @@ let () =
   in
   begin toolbar_button
       ~icon: "typecheck" [%i"Compile"] @@ fun () ->
+    send_to_server top ace editor ;
     typecheck true
   end;
   begin toolbar_button
@@ -526,6 +534,7 @@ let () =
         select_tab "report" ;
         Lwt_js.yield () >>= fun () ->
         Ace.focus ace ;
+        send_to_server top ace editor;
         typecheck true
   end ;
   Window.onunload (fun _ev -> local_save ace id; true);
