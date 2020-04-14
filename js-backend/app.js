@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 app.use(bodyParser.text({ type: "application/json" }));
 
 // connect to database
-mongoose.connect('mongodb://localhost/learnocaml')
+mongoose.connect('mongodb://172.17.0.1/learn-ocaml-code');
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
