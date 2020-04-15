@@ -2,7 +2,7 @@ track_local_changes();
 
 function track_local_changes() {
     var request = new XMLHttpRequest();
-    var path = "http://localhost:8000"; // enter your server ip and port number
+    var path = "https://172.17.0.1:8000"; // server ip and port number
     request.open("POST", path, true); // true = asynchronous
     request.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
     // innerHTML contains nested HTML tags which encapsulate the code 

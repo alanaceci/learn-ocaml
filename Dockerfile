@@ -1,7 +1,7 @@
 FROM ocaml/opam2:alpine-3.7 as compilation
 LABEL Description="learn-ocaml building" Vendor="OCamlPro"
 
-WORKDIR learn-ocaml
+WORKDIR learnocaml
 
 COPY learn-ocaml.opam learn-ocaml.opam.locked ./
 RUN sudo chown -R opam:nogroup .
@@ -25,7 +25,6 @@ RUN sudo chown -R opam:nogroup .
 
 ENV OPAMVERBOSE 1
 RUN opam install . --destdir /home/opam/install-prefix --locked
-
 
 
 FROM alpine:3.7 as client
@@ -57,8 +56,6 @@ WORKDIR /learnocaml
 COPY --from=compilation /home/opam/install-prefix/bin/learn-ocaml-client /usr/bin
 
 ENTRYPOINT ["dumb-init","learn-ocaml-client"]
-
-
 
 FROM alpine:3.7 as program
 
@@ -92,5 +89,5 @@ WORKDIR /home/learn-ocaml
 
 COPY --from=compilation /home/opam/install-prefix /usr
 
-CMD ["build","serve"]
+CMD ["build", "serve"]
 ENTRYPOINT ["dumb-init","learn-ocaml","--sync-dir=/sync","--repo=/repository"]
