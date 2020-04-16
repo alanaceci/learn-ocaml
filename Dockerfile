@@ -1,7 +1,7 @@
 FROM ocaml/opam2:alpine-3.7 as compilation
 LABEL Description="learn-ocaml building" Vendor="OCamlPro"
 
-WORKDIR learnocaml
+WORKDIR /Users/alanaceci/Desktop/COMP396/learnocaml/learn-ocaml
 
 COPY learn-ocaml.opam learn-ocaml.opam.locked ./
 RUN sudo chown -R opam:nogroup .
