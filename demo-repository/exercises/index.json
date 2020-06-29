@@ -4,9 +4,7 @@
     "demo": {
       "title": "Demo exercise pack",
       "exercises": [
-        "demo-mutation",
-        "demo-style",
-        "demo-tailrec"
+        "hw2"
       ]
     }
   }

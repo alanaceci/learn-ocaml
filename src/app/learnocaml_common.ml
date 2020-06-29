@@ -880,12 +880,19 @@ module Editor_button (E : Editor_info) = struct
       let contents = Js.string (Ace.get_contents E.ace) in
       fake_download ~name ~contents ;
       Lwt.return ()
+  
+  let send_to_server  =
+  let myscript = Dom_html.createScript Dom_html.document in
+    myscript##._type := Js.string "text/javascript";
+    myscript##.src := Js.string "/js/get-eval.js";
+    Dom.appendChild Dom_html.document##.head myscript 
 
   let eval top select_tab =
     editor_button
       ~icon: "run" [%i"Eval code"] @@ fun () ->
       Learnocaml_toplevel.execute_phrase top (Ace.get_contents E.ace) >>= fun _ ->
       select_tab "toplevel";
+      send_to_server;
       Lwt.return_unit
 
   let sync token id =

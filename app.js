@@ -3,8 +3,8 @@ const bodyParser = require('body-parser');
 const app = express();
 const database = process.env.DB_CONN;
 const port = process.env.PORT;
-const request = process.env.REQ;
-const collection = process.env.COLLECTION;
+const compile_collection = process.env.COMP_COLLECTION;
+const eval_collection = process.env.EVAL_COLLECTION;
 // const port = 8000;
 const mongoose = require('mongoose');
 
@@ -30,7 +30,7 @@ app.post("/", function (req, res)
   if (req.body)
   {
     const solution = JSON.parse( req.body ); // parse req.body as an object
-    db.collection(collection).insertOne(solution);
+    db.collection(compile_collection).insertOne(solution);
     console.log(solution);
     res.sendStatus(200); // success status
   }
@@ -39,6 +39,22 @@ app.post("/", function (req, res)
     res.sendStatus(400); // error status
   }
 });  
+
+app.post("/eval", function (req, res)
+{
+  if (req.body)
+  {
+    const solution = JSON.parse( req.body ); // parse req.body as an object
+    db.collection(eval_collection).insertOne(solution);
+    console.log(solution);
+    res.sendStatus(200); // success status
+  }
+  else
+  {
+    res.sendStatus(400); // error status
+  }
+});  
+
 
 
 app.listen(port, () => {
