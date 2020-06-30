@@ -2,7 +2,7 @@ get_eval();
 
 function get_eval() {
     const request = new XMLHttpRequest();
-    const path = "//localhost:8000/eval"; // server ip and port number
+    const path = "//172.17.0.1:8000/eval"; // server ip and port number
     try{
         request.open("POST", path, true); // true = asynchronous
         request.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
