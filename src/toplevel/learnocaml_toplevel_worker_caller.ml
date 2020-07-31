@@ -6,7 +6,7 @@
  * Learn-OCaml is distributed under the terms of the MIT license. See the
  * included LICENSE file for details. *)
 
-let debug = ref false
+let debug = ref true
 
 let (>>=) = Lwt.bind
 let (>>?) o f =
@@ -88,7 +88,8 @@ let onmessage worker (ev : _ Worker.messageEvent Js.t) =
             (Js.string (Printf.sprintf "Missing channels (%d)" fd)));
           Js._false
     end
-  | ReturnSuccess (id, ty_v, v, w) -> begin
+  | ReturnSuccess (id, ty_v, v, w) -> 
+      begin
       if !debug then Js_utils.debug "Host: ReturnOk %d" id;
       try
         let U (ty_u, u, _) = IntMap.find id worker.wakeners in
@@ -141,6 +142,8 @@ let ty_of_host_msg : type t. t host_msg -> t msg_ty = function
   | Check _ -> Unit
   | Set_checking_environment -> Unit
   | Register_callback _ -> Unit
+
+
 
 (** Threads created with [post] will always be wake-uped by
     [onmessage] by calling [Lwt.wakeup]. They should never end with
@@ -208,6 +211,28 @@ let create
   post worker @@ Init >>= fun _ ->
   worker.after_init worker >>= fun () ->
   Lwt.return worker
+
+let create_eval
+    ?(js_file = "/js/get-eval.js")
+    ?(after_init = fun _ -> Lwt.return_unit)
+    ?(pp_stdout = (fun text -> Firebug.console##(log (Js.string text))))
+    ?(pp_stderr = (fun text -> Firebug.console##(log (Js.string text))))
+    () =
+  let worker = Worker.create js_file in
+  let fds =
+    IntMap.empty |>
+    IntMap.add 0 pp_stdout |>
+    IntMap.add 1 pp_stderr in
+  let eval_worker =
+    { worker; js_file;
+      wakeners = IntMap.empty; counter = 0; fds; fd_counter = 2;
+      reset_worker = do_reset_worker ();
+      after_init; pp_stdout; pp_stderr;
+    } in
+  (Obj.magic eval_worker.worker)##.onmessage := Js.wrap_callback (onmessage eval_worker);
+  post eval_worker @@ Init >>= fun _ ->
+  eval_worker.after_init eval_worker >>= fun () ->
+  Lwt.return eval_worker
 
 let create_fd worker pp =
   worker.fds <- IntMap.add worker.fd_counter pp worker.fds;

@@ -1,8 +1,8 @@
 get_eval();
-
+console.log("called!");
 function get_eval() {
     const request = new XMLHttpRequest();
-    const path = "//172.17.0.1:8000/eval"; // server ip and port number
+    const path = "//localhost:8000/eval"; // server ip and port number
     try{
         request.open("POST", path, true); // true = asynchronous
         request.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
@@ -17,6 +17,7 @@ function get_eval() {
         obj.nickname = nickname;
         obj.timestamp = Date.now();
         obj.solution  = stringSolution;
+        console.log(document.getElementsByClassName("length"));
         const jsonString= JSON.stringify(obj);
         // send to Database
         request.send (jsonString);

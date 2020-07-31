@@ -8,6 +8,7 @@
 
 open Js_utils
 open Tyxml_js
+open Learnocaml_toplevel_worker_caller
 
 let (>>=) = Lwt.(>>=)
 (* let (>|=) = Lwt.(>|=)
@@ -172,11 +173,92 @@ let protect_execution top exec =
       Lwt.wakeup u () ;
       thread
 
+let wrap_flusher_to_prevent_flood top name hook real =
+  let flooded = ref 0 in
+  hook := fun s ->
+    real s ;
+    let total = !flooded + String.length s in
+    if total >= top.flood_limit then begin
+      let buf = Buffer.create top.flood_limit in
+      hook := (fun s -> try flooded := !flooded + String.length s ; Buffer.add_string buf s with _ -> ()) ;
+      flooded := total ;
+      Lwt.async @@ fun () ->
+      Lwt.catch
+        (fun () ->
+           wait_for_prompts top >>= fun () ->
+           top.current_flood_prompt <-
+             (top.flood_prompt top name (fun () -> !flooded) >>= function
+               | true ->
+                   real (Printf.sprintf [%if"\nInterrupted output channel %s.\n"] name) ;
+                   hook := ignore ;
+                   Lwt.return ()
+               | false ->
+                   real (Buffer.contents buf) ;
+                   hook := real ;
+                   Lwt.return ()) ;
+           top.current_flood_prompt)
+        (fun _exn ->
+           hook := ignore ;
+           Lwt.return ())
+    end else begin
+      flooded := total
+    end
+
 let execute_phrase top ?timeout content =
   input_focus top @@ fun () ->
   let phrase = Learnocaml_toplevel_output.phrase () in
   let pp_code = Learnocaml_toplevel_output.output_code ~phrase top.output in
   let pp_answer = Learnocaml_toplevel_output.output_answer ~phrase top.output in
+  let create_eval 
+  ?worker_js_file
+    ?(timeout_delay = 5.)
+    ~timeout_prompt
+    ?(flood_limit = 8000)
+    ~flood_prompt
+    ?after_init
+    ?(input_sizing =
+      { Learnocaml_toplevel_input.line_height = 18 ;
+        min_lines = 1 ; max_lines = 6 })
+    ?on_resize
+    ?(on_disable_input = fun _ -> ())
+    ?(on_enable_input = fun _ -> ())
+    ?history
+    ?(oldify = true)
+    ?(display_welcome = true)
+    ~container () =
+  (match get_lang() with Some l -> Ocplib_i18n.set_lang l | None -> ());
+  let output_div = Html5.div [] in
+  let input_div = Html5.div [] in
+  Manip.appendChild container output_div;
+  Manip.appendChild container input_div;
+  let output =
+    Learnocaml_toplevel_output.setup
+      ?on_resize
+      ~container:output_div
+      () in
+  let execute_hook = ref (fun _code -> assert false) in
+  let input =
+    Learnocaml_toplevel_input.setup
+      ~sizing: input_sizing
+      ~execute: (fun code -> !execute_hook code)
+      ~container:input_div
+      ?on_resize
+      ?history
+      () in
+  let pp_stdout_hook = ref ignore in
+  let pp_stdout s = !pp_stdout_hook s in
+  let pp_stderr_hook = ref ignore in
+  let pp_stderr s = !pp_stderr_hook s in
+  let flood_reset top =
+    let phrase = Learnocaml_toplevel_output.phrase () in
+    Lwt.cancel top.current_flood_prompt ;
+    wrap_flusher_to_prevent_flood top
+      "stdout" pp_stdout_hook
+      (Learnocaml_toplevel_output.output_stdout ~phrase output) ;
+    wrap_flusher_to_prevent_flood top
+      "stderr" pp_stderr_hook
+      (Learnocaml_toplevel_output.output_stderr ~phrase output) in
+      Learnocaml_toplevel_worker_caller.create_eval ?js_file:worker_js_file ~pp_stdout ~pp_stderr () in
   let t =
     Learnocaml_toplevel_worker_caller.execute
       top.worker ~pp_code ~pp_answer ~print_outcome:true content in
@@ -348,37 +430,6 @@ let make_flood_popup
     (fun exn ->
        Manip.removeChild container dialog ;
        Lwt.fail exn)
-
-let wrap_flusher_to_prevent_flood top name hook real =
-  let flooded = ref 0 in
-  hook := fun s ->
-    real s ;
-    let total = !flooded + String.length s in
-    if total >= top.flood_limit then begin
-      let buf = Buffer.create top.flood_limit in
-      hook := (fun s -> try flooded := !flooded + String.length s ; Buffer.add_string buf s with _ -> ()) ;
-      flooded := total ;
-      Lwt.async @@ fun () ->
-      Lwt.catch
-        (fun () ->
-           wait_for_prompts top >>= fun () ->
-           top.current_flood_prompt <-
-             (top.flood_prompt top name (fun () -> !flooded) >>= function
-               | true ->
-                   real (Printf.sprintf [%if"\nInterrupted output channel %s.\n"] name) ;
-                   hook := ignore ;
-                   Lwt.return ()
-               | false ->
-                   real (Buffer.contents buf) ;
-                   hook := real ;
-                   Lwt.return ()) ;
-           top.current_flood_prompt)
-        (fun _exn ->
-           hook := ignore ;
-           Lwt.return ())
-    end else begin
-      flooded := total
-    end
 
 let welcome_phrase () =
   [%i"Printf.printf \"Welcome to OCaml %s\\n%!\" (Sys.ocaml_version);\n\
